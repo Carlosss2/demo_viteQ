@@ -88,7 +88,7 @@ class _LoginViewState extends State<LoginView> {
     final viewModel = context.watch<LoginViewModel>();
 
     return Scaffold(
-      backgroundColor: const Color(0xfff5f7fa),
+      backgroundColor: const Color(0xFFF5F0FF),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -98,13 +98,20 @@ class _LoginViewState extends State<LoginView> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.shield_outlined, size: 80, color: Colors.blueAccent), // Icono cambiado por semántica de seguridad
+                const Icon(Icons.flash_on, size: 80, color: Colors.deepPurple),
                 const SizedBox(height: 16),
                 const Text(
-                  "Acceso Seguro",
+                  "ViteQ",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.deepPurple),
                 ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Bienvenido",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.deepPurple, fontStyle: FontStyle.italic),
+                ),
+                const SizedBox(height: 8),
                 const Text(
                   "Pantalla protegida contra fuga de datos",
                   textAlign: TextAlign.center,
@@ -148,7 +155,7 @@ class _LoginViewState extends State<LoginView> {
                 ElevatedButton(
                   onPressed: viewModel.isLoading ? null : () => _handleLogin(viewModel),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
+                    backgroundColor: Colors.deepPurple,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
