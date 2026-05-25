@@ -12,5 +12,26 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    let channel = FlutterMethodChannel(
+      name: "com.example.app_demo/fake_gps",
+      binaryMessenger: engineBridge.binaryMessenger
+    )
+
+    channel.setMethodCallHandler { [weak self] (call, result) in
+      if call.method == "isMockLocationEnabled" {
+        result(self?.isMockLocationEnabled() ?? false)
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  private func isMockLocationEnabled() -> Bool {
+    #if targetEnvironment(simulator)
+      return true
+    #else
+      return false
+    #endif
   }
 }
