@@ -4,6 +4,7 @@ import 'package:flutter/services.dart'; // Para cerrar la app de forma limpia en
 import 'package:provider/provider.dart';
 import 'package:screen_protector/screen_protector.dart';
 import '../viewmodels/login_viewmodel.dart';
+import '../viewmodels/session_viewmodel.dart';
 import '../data/services/security_service.dart'; // Importamos el nuevo servicio
 
 class LoginView extends StatefulWidget {
@@ -125,13 +126,8 @@ class _LoginViewState extends State<LoginView> {
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('¡Bienvenido, ${viewModel.user?.username}!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        _passwordController.clear();
+        final sessionVM = context.read<SessionViewModel>();
+        await sessionVM.startSession(viewModel.user!.username);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
