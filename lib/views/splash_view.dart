@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/services/fake_gps_service.dart';
 import '../data/services/usb_debug_service.dart';
+import '../data/services/integrity_service.dart';
 import 'login_view.dart';
 
 class SplashView extends StatefulWidget {
@@ -26,6 +27,31 @@ class _SplashViewState extends State<SplashView> {
 
     if (usbDebugEnabled) {
       await _showUsbDebugAlert();
+      if (mounted) SystemNavigator.pop();
+      return;
+    }
+
+    final fridaDetected = await IntegrityService.isFridaDetected();
+    if (!mounted) return;
+
+    if (fridaDetected) {
+      await _showTamperingAlert('Instrumentación Detectada',
+          'Se detectó un entorno de instrumentación (Frida) en el dispositivo. '
+          'Esta herramienta permite manipular la aplicación en tiempo real.\n\n'
+          'Por seguridad, la aplicación se cerrará.');
+      if (mounted) SystemNavigator.pop();
+      return;
+    }
+
+    final rootDetected = await IntegrityService.isRootDetected();
+    if (!mounted) return;
+
+    if (rootDetected) {
+      await _showTamperingAlert('Dispositivo Rooteado',
+          'Se detectó que el dispositivo tiene acceso root.\n\n'
+          'Los dispositivos rooteados exponen la aplicación a riesgos de '
+          'seguridad como extracción de datos y manipulación del entorno.\n\n'
+          'Por seguridad, la aplicación se cerrará.');
       if (mounted) SystemNavigator.pop();
       return;
     }
@@ -89,6 +115,44 @@ class _SplashViewState extends State<SplashView> {
               ),
             ],
           ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () {
+                if (Platform.isAndroid) {
+                  SystemNavigator.pop();
+                } else {
+                  exit(0);
+                }
+              },
+              child: const Text('Cerrar', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showTamperingAlert(String title, String message) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.security, size: 30, color: Colors.redAccent),
+              const SizedBox(width: 12),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(message, style: const TextStyle(fontSize: 13)),
           actions: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(

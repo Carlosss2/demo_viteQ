@@ -1,11 +1,13 @@
-import 'dart:io'; // Para identificar la plataforma (Android/iOS)
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Para cerrar la app de forma limpia en Android
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:screen_protector/screen_protector.dart';
 import '../viewmodels/login_viewmodel.dart';
 import '../viewmodels/session_viewmodel.dart';
 import '../data/services/security_service.dart';
+import '../data/services/usb_debug_service.dart';
+import '../data/services/integrity_service.dart';
 import 'home_view.dart';
 
 class LoginView extends StatefulWidget {
@@ -39,16 +41,81 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
-  /// Verifica si el usuario está usando herramientas de simulación de GPS
   void _checkDeviceIntegrity() {
-    // Asegura que el contexto esté listo para mostrar diálogos de UI
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final usbDebug = await UsbDebugService.isUsbDebugEnabled();
+      if (usbDebug && mounted) {
+        _showSecurityAlert(
+          'Brecha de Seguridad',
+          'La Depuración USB está activa.\n\n'
+          'Desactívala en Ajustes → Opciones de Desarrollador.',
+        );
+        return;
+      }
+
+      final frida = await IntegrityService.isFridaDetected();
+      if (frida && mounted) {
+        _showSecurityAlert(
+          'Instrumentación Detectada',
+          'Se detectó un entorno de instrumentación.\n\n'
+          'Por seguridad, la aplicación se cerrará.',
+        );
+        return;
+      }
+
+      final root = await IntegrityService.isRootDetected();
+      if (root && mounted) {
+        _showSecurityAlert(
+          'Dispositivo Rooteado',
+          'El dispositivo tiene acceso root.\n\n'
+          'Por seguridad, la aplicación se cerrará.',
+        );
+        return;
+      }
+
       bool isFakeGps = await _securityService.isFakeGpsDetected();
-      
       if (isFakeGps && mounted) {
         _showFakeGpsAlert();
       }
     });
+  }
+
+  void _showSecurityAlert(String title, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.security, size: 28, color: Colors.redAccent),
+              const SizedBox(width: 10),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(message, style: const TextStyle(fontSize: 13)),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () {
+                if (Platform.isAndroid) {
+                  SystemNavigator.pop();
+                } else {
+                  exit(0);
+                }
+              },
+              child: const Text('Cerrar', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Despliega la alerta de bloqueo y fuerza el cierre de la aplicación
