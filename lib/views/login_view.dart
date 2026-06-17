@@ -1,7 +1,11 @@
+import 'dart:io'; // Para identificar la plataforma (Android/iOS)
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Para cerrar la app de forma limpia en Android
 import 'package:provider/provider.dart';
-import 'package:screen_protector/screen_protector.dart'; // 1. Importamos el paquete de seguridad
+import 'package:screen_protector/screen_protector.dart';
 import '../viewmodels/login_viewmodel.dart';
+import '../viewmodels/session_viewmodel.dart';
+import '../data/services/security_service.dart'; // Importamos el nuevo servicio
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -16,35 +20,93 @@ class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordObscured = true;
 
+  // Instanciamos el servicio de seguridad
+  final SecurityService _securityService = SecurityService();
+
   @override
   void initState() {
     super.initState();
-    _initScreenProtection(); // 2. Activamos la protección al construir la vista
+    _initScreenProtection(); // Activamos la protección de pantalla existente
+    _checkDeviceIntegrity(); // <- NUEVO: Ejecuta la validación de Fake GPS
   }
 
   @override
   void dispose() {
-    _disableScreenProtection(); // 3. Liberamos la protección al destruir la vista
+    _disableScreenProtection(); 
     _userController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
+  /// Verifica si el usuario está usando herramientas de simulación de GPS
+  void _checkDeviceIntegrity() {
+    // Asegura que el contexto esté listo para mostrar diálogos de UI
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      bool isFakeGps = await _securityService.isFakeGpsDetected();
+      
+      if (isFakeGps && mounted) {
+        _showFakeGpsAlert();
+      }
+    });
+  }
+
+  /// Despliega la alerta de bloqueo y fuerza el cierre de la aplicación
+  void _showFakeGpsAlert() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Bloquea el cierre al tocar fuera del diálogo
+      builder: (BuildContext context) {
+        return PopScope(
+          canPop: false, // Bloquea el botón "Back" nativo de Android
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.gpp_bad, color: Colors.redAccent, size: 30),
+                SizedBox(width: 12),
+                Text('Violación de Seguridad', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: const Text(
+              'Se detectó el uso de una aplicación de ubicación simulada (Fake GPS).\n\n'
+              'Por razones de seguridad y protección de datos, la aplicación se cerrará inmediatamente.',
+              style: TextStyle(fontSize: 14),
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () {
+                  // Cierre controlado de la aplicación según la plataforma
+                  if (Platform.isAndroid) {
+                    SystemNavigator.pop(); // Cierre estándar y limpio para Android
+                  } else if (Platform.isIOS) {
+                    exit(0); // Cierre forzado para iOS (Apple no tiene equivalente nativo a pop)
+                  }
+                },
+                child: const Text('Aceptar', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   /// Configura las directivas de seguridad nativas del dispositivo
   Future<void> _initScreenProtection() async {
     try {
-      // Bloquea capturas y grabaciones de pantalla activas (En Android muestra pantalla negra)
       await ScreenProtector.preventScreenshotOn();
-      
-      // Protege los datos en la vista de aplicaciones recientes (Multitarea)
-      // En iOS aplica un filtro/opacidad automáticamente al salir de la app
       await ScreenProtector.protectDataLeakageWithColor(Colors.black);
     } catch (e) {
       debugPrint("Error al inicializar la protección de pantalla: $e");
     }
   }
 
-  /// Desactiva las restricciones de seguridad para no perjudicar la experiencia en el resto de la app
+  /// Desactiva las restricciones de seguridad
   Future<void> _disableScreenProtection() async {
     try {
       await ScreenProtector.preventScreenshotOff();
@@ -64,14 +126,8 @@ class _LoginViewState extends State<LoginView> {
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('¡Bienvenido, ${viewModel.user?.username}!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // NOTA DE SEGURIDAD: Limpiar credenciales de la memoria RAM inmediatamente
-        _passwordController.clear();
+        final sessionVM = context.read<SessionViewModel>();
+        await sessionVM.startSession(viewModel.user!.username);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -25,8 +25,28 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun isMockLocationEnabled(): Boolean {
+        return isEmulator() || isMockLocationSettingEnabled()
+    }
+
+    private fun isEmulator(): Boolean {
+        return (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")) ||
+                Build.FINGERPRINT.startsWith("generic") ||
+                Build.FINGERPRINT.startsWith("unknown") ||
+                Build.MODEL.contains("google_sdk") ||
+                Build.MODEL.contains("Emulator") ||
+                Build.MODEL.contains("Android SDK built for x86") ||
+                Build.MANUFACTURER.contains("Genymotion") ||
+                Build.HARDWARE.contains("goldfish") ||
+                Build.HARDWARE.contains("ranchu") ||
+                Build.PRODUCT.contains("sdk") ||
+                Build.PRODUCT.contains("vbox86p") ||
+                Build.PRODUCT.contains("emulator") ||
+                Build.PRODUCT.contains("simulator")
+    }
+
+    @Suppress("DEPRECATION")
+    private fun isMockLocationSettingEnabled(): Boolean {
         return try {
-            @Suppress("DEPRECATION")
             Settings.Secure.getInt(
                 contentResolver,
                 Settings.Secure.ALLOW_MOCK_LOCATION,
