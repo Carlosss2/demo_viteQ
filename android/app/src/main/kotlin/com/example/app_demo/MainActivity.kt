@@ -7,17 +7,29 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "com.example.app_demo/fake_gps"
+    private val FAKE_GPS_CHANNEL = "com.example.app_demo/fake_gps"
+    private val USB_DEBUG_CHANNEL = "com.example.app_demo/usb_debug"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            CHANNEL
+            FAKE_GPS_CHANNEL
         ).setMethodCallHandler { call, result ->
             if (call.method == "isMockLocationEnabled") {
                 result.success(isMockLocationEnabled())
+            } else {
+                result.notImplemented()
+            }
+        }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            USB_DEBUG_CHANNEL
+        ).setMethodCallHandler { call, result ->
+            if (call.method == "isUsbDebugEnabled") {
+                result.success(isUsbDebugEnabled())
             } else {
                 result.notImplemented()
             }
@@ -52,6 +64,22 @@ class MainActivity : FlutterActivity() {
                 Settings.Secure.ALLOW_MOCK_LOCATION,
                 0
             ) == 1
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun isUsbDebugEnabled(): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                Settings.Global.getInt(
+                    contentResolver,
+                    Settings.Global.ADB_ENABLED,
+                    0
+                ) == 1
+            } else {
+                false
+            }
         } catch (e: Exception) {
             false
         }

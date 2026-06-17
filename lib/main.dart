@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'viewmodels/login_viewmodel.dart';
-import 'views/login_view.dart';
+import 'viewmodels/session_viewmodel.dart';
+import 'views/splash_view.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,6 +16,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LoginViewModel()),
+        ChangeNotifierProvider(create: (_) => SessionViewModel()),
       ],
       child: MaterialApp(
         title: 'Clean Architecture MVVM',
@@ -23,7 +25,7 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
           colorSchemeSeed: Colors.deepPurple,
         ),
-        home: const LoginView(),
+        home: const SplashView(),
       ),
     );
   }

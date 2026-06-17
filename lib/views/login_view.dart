@@ -5,7 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:screen_protector/screen_protector.dart';
 import '../viewmodels/login_viewmodel.dart';
 import '../viewmodels/session_viewmodel.dart';
-import '../data/services/security_service.dart'; // Importamos el nuevo servicio
+import '../data/services/security_service.dart';
+import 'home_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -127,7 +128,11 @@ class _LoginViewState extends State<LoginView> {
     if (mounted) {
       if (success) {
         final sessionVM = context.read<SessionViewModel>();
+        final navigator = Navigator.of(context);
         await sessionVM.startSession(viewModel.user!.username);
+        navigator.pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeView()),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
