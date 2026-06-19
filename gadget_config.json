@@ -1,0 +1,6 @@
+{
+  "interaction": {
+    "type": "script",
+    "path": "frida_bypass_usb_debug.js"
+  }
+}
